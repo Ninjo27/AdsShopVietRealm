@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>AdsShop - Xem quảng cáo và mua đồ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    /* ... giữ nguyên toàn bộ phần CSS của bạn ở đây ... */
+    body { font-family: Arial, sans-serif; background: #f6f6f6; }
+    .header { background: #ff5722; color: #fff; padding: 20px 0; text-align: center; }
+    .balance { font-size: 20px; margin: 20px 0; color: #388e3c; }
+    .container { width: 1000px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 8px; }
+    .products { display: flex; flex-wrap: wrap; gap: 20px; }
+    .product { background: #fafafa; border: 1px solid #eee; border-radius: 8px; width: 220px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .product img { width: 100%; border-radius: 6px; }
+    .product-title { font-size: 17px; margin: 10px 0 5px; font-weight: bold; }
+    .product-price { color: #ff5722; font-size: 16px; margin-bottom: 10px; }
+    .product-stock { color: #388e3c; font-size: 13px; margin-bottom: 5px; }
+    .out-of-stock { color: #d32f2f; font-weight: bold; }
+    .add-cart-btn { background: #ff5722; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+    .add-cart-btn:disabled { background: #ccc; }
+    .cart { margin-top: 40px; }
+    .cart h2 { margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #eee; padding: 8px; text-align: center; }
+    .checkout-btn { margin-top: 15px; background: #388e3c; color: #fff; border: none; padding: 10px 30px; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    .checkout-btn:disabled { background: #ccc; }
+    .msg { margin-top: 10px; font-size: 15px; color: #d32f2f; }
+    #admin-section, #orders-section, #stock-section { margin-top: 40px; background: #f4f4f4; border-radius: 8px; padding: 20px; }
+    #orders-table th, #orders-table td { padding: 8px 5px; }
+    #orders-table th { background: #ffefcf; }
+    #admin-section h2, #orders-section h2, #stock-section h2 { margin-top: 0; }
+    #stock-list input[type=number] { width: 60px; }
+      .nav-btn {
+  background: #ffefcf;
+  color: #ff5722;
+  border: none;
+  padding: 9px 26px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 4px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+  box-shadow: 0 1px 3px rgba(255,87,34,0.07);
+}
+.nav-btn:hover, .nav-btn.active {
+  background: #ff5722;
+  color: #fff;
+}
+    /* Nhóm nút chọn danh mục sản phẩm */
+.product-filter-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Nút danh mục sản phẩm */
+.btn-category {
+  background: #fffbe7;
+  color: #ff9800;
+  border: 1.5px solid #ff9800;
+  border-radius: 18px;
+  font-weight: 600;
+  padding: 10px 34px;
+  font-size: 17px;
+  margin: 0 2px;
+  box-shadow: 0 2px 8px rgba(255,152,0,0.10);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.14s;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+
+.btn-category:hover,
+.btn-category:focus {
+  background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(255,152,0,0.18);
+  transform: translateY(-2px) scale(1.04);
+  border-color: #ff9800;
+}
+
+.btn-category.active {
+  background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%);
+  color: #fff;
+  border-color: #ff9800;
+  box-shadow: 0 4px 14px rgba(255,152,0,0.16);
+}
+    /* Nút Đăng ký và Đăng nhập */
+.btn-auth {
+  background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-weight: bold;
+  font-size: 17px;
+  padding: 11px 36px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(255,87,34,0.10);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.14s;
+  margin: 8px 0 5px 0;
+  outline: none;
+  letter-spacing: 0.2px;
+}
+.btn-auth:hover, .btn-auth:focus {
+  background: linear-gradient(90deg, #ff5722 0%, #ff9800 100%);
+  box-shadow: 0 4px 18px rgba(255,152,0,0.18);
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* Nút Đăng xuất */
+.btn-logout {
+  background: #fff;
+  color: #ff9800;
+  border: 2px solid #ff9800;
+  border-radius: 9px;
+  font-weight: bold;
+  font-size: 17px;
+  padding: 9px 32px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(255,152,0,0.09);
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.14s;
+  margin: 8px 0 5px 16px;
+  outline: none;
+  letter-spacing: 0.2px;
+}
+.btn-logout:hover, .btn-logout:focus {
+  background: #ff9800;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(255,152,0,0.18);
+  transform: translateY(-2px) scale(1.04);
+  border-color: #ff9800;
+}
+  </style>
+</head>
+<body>
+<!-- Modal hướng dẫn/thể lệ khi đăng nhập -->
+<div id="rules-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:10000;">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fffbe7;padding:32px 32px 24px 32px;min-width:340px;max-width:94vw;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,0.13);">
+    <button onclick="hideRulesModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;font-size:26px;line-height:20px;color:#d77c00;cursor:pointer;">×</button>
+    <h2 style="color:#ff9800;text-align:center;margin-top:0;">Thể lệ & Hướng dẫn sử dụng</h2>
+    <div id="rules-content" style="color:#444;font-size:16px;">
+      <ul style="padding-left:18px;line-height:1.7;">
+        <li>Sau khi tạo tài khoản, tài khoản phải chờ duyệt trong khoảng 1 ngày mới được cấp link để xem quảng cáo, nếu bạn là người mới hãy quay lại vào ngày mai nhé!</li>
+        <li>Mỗi lần bấm vào xem quảng cáo và load hết trang sẽ được tính là 1 xu. (Chỉ cần khoảng 3-5 giây đã có thể nhận được 1 xu).</li>
+        <li>Xu sẽ được duyệt trong khoảng 1 ngày, sau khi duyệt xu được cộng trực tiếp vào tài khoản.</li>
+        <li>Sau khi đặt hàng, chờ hàng được giao trực tiếp trong game.</li>
+        <li>Liên hệ admin nếu cần hỗ trợ hoặc có thắc mắc qua discord ninjo217.</li>
+      </ul>
+    </div>
+    <div style="text-align:center;margin-top:18px;">
+      <button onclick="hideRulesModal()" style="background:#ff9800;color:#fff;font-weight:bold;font-size:16px;border:none;padding:9px 32px;border-radius:7px;cursor:pointer;">Tôi đã hiểu</button>
+    </div>
+  </div>
+</div>
+  <div class="header">
+    <h1>AdsShop - Xem quảng cáo và mua sắm</h1>
+    <div id="user-section" style="display:none;">
+      Xin chào <span id="username-display"></span> | Số dư: <span class="balance" id="balance"></span> Xu
+      <button class="btn-logout" onclick="logout()">Đăng xuất</button>
+    </div>
+  </div>
+  <div style="width:100%; background: #388e3c; text-align:center; padding: 12px 0;">
+    <a id="special-link-btn"
+      href="#"
+      target="_blank"
+      style="display:none; background:#fff; color:#388e3c; font-weight:bold; font-size:18px; padding:10px 30px; border-radius:6px; text-decoration:none; box-shadow:0 2px 6px rgba(0,0,0,0.09); transition:background 0.2s;">
+      🔗 Xem quảng cáo và nhận xu
+    </a>
+    <div id="main-navbar" style="display:none; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); border-radius:8px; width:1000px; margin:16px auto 0 auto; display:flex; justify-content:center; gap:24px; padding:10px 0;">
+  <button class="nav-btn" id="shop-nav-btn" onclick="showSection('shop')">🛒 Mua hàng</button>
+  <button class="nav-btn" id="game-nav-btn" onclick="showSection('game')">🎮 Game</button>
+  <button class="nav-btn" id="admin-nav-btn" style="display:none;" onclick="showSection('admin')">🛠️ Admin</button>
+</div>
+  </div>
+  <div class="container">
+    <div id="login-section" style="display:none;">
+      <h2>Đăng nhập</h2>
+      <input type="text" id="username" placeholder="Tên Minecraft" required>
+      <input type="password" id="password" placeholder="Mật khẩu" required>
+     <button class="btn-auth" onclick="login()">Đăng nhập</button>
+      <div style="margin-top:10px;">Chưa có tài khoản? <a href="#" onclick="showRegister();return false;">Đăng ký</a></div>
+      <div class="msg" id="login-msg"></div>
+    </div>
+    <div id="register-section" style="display:none;">
+      <h2>Đăng ký</h2>
+      <input type="text" id="reg-username" placeholder="Tên Minecraft" required>
+      <input type="password" id="reg-password" placeholder="Mật khẩu" required>
+      <button class="btn-auth" onclick="register()">Đăng ký</button>
+      <div style="margin-top:10px;">Đã có tài khoản? <a href="#" onclick="showLogin();return false;">Đăng nhập</a></div>
+      <div class="msg" id="register-msg"></div>
+    </div>
+    <div id="shop-section" style="display:none;">
+      <h2>Sản phẩm nổi bật</h2>
+      <div id="category-filter" style="margin-bottom:20px; text-align:center;">
+  <button class="btn-category active" onclick="filterCategory('all', this)">Tất cả</button>
+  <button class="btn-category" onclick="filterCategory('thuc-an', this)">Thức ăn</button>
+  <button class="btn-category" onclick="filterCategory('trang-bi', this)">Trang bị</button>
+  <button class="btn-category" onclick="filterCategory('sach-enchant', this)">Sách Enchant</button>
+  <button class="btn-category" onclick="filterCategory('khoang-san', this)">Khoáng sản</button>
+  <button class="btn-category" onclick="filterCategory('khac', this)">Khác</button>
+  <!-- Thêm nút cho các danh mục khác nếu muốn -->
+</div>
+      <div class="products" id="products-list"></div>
+      <div class="cart">
+        <h2>Giỏ hàng</h2>
+        <table id="cart-table">
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Đơn giá</th>
+              <th>Số lượng</th>
+              <th>Thành tiền</th>
+              <th>Xóa</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div style="text-align:right; margin-top:10px;">
+          Tổng cộng: <span id="cart-total">0</span> Xu
+        </div>
+        <button class="checkout-btn" onclick="checkout()" id="checkout-btn">Thanh toán</button>
+        <div class="msg" id="cart-msg"></div>
+      </div>
+    </div>
+<!-- Double or Nothing Game -->
+<div id="double-section" style="display:none; margin:40px auto 0 auto; max-width:420px; background:#fffbe7; border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.07); padding:24px 15px;">
+  <h2 style="text-align:center; color:#e65100;">🎲 Nhân đôi hoặc mất tất cả</h2>
+  <div style="text-align:center;">
+    <div style="font-size:15px; color:#333; margin-bottom:7px;">
+      Đặt cược <b>4 xu</b> để thử <b>nhân đôi hoặc mất trắng</b>!<br>
+    </div>
+    <div id="double-current" style="font-size:15px; color:#1b5e20; margin-bottom:10px;"></div>
+    <button id="double-start-btn" onclick="startDoubleGame()" style="margin-top:12px; background:#ff9800; color:#fff; border:none; border-radius:6px; padding:9px 25px; font-size:16px; cursor:pointer;">Chơi mới (4 xu)</button>
+    <button id="double-btn" onclick="doubleOrNothing()" style="display:none; margin-top:12px; background:#ff9800; color:#fff; border:none; border-radius:6px; padding:9px 25px; font-size:16px; cursor:pointer;">Nhân đôi tiếp</button>
+    <button id="double-take-btn" onclick="takeDoubleWinnings()" style="display:none; margin-top:12px; background:#388e3c; color:#fff; border:none; border-radius:6px; padding:9px 25px; font-size:16px; cursor:pointer;">Rút xu</button>
+    <div class="msg" id="double-msg"></div>
+  </div>
+  <div style="margin-top:18px;">
+    <h4>Lịch sử chơi:</h4>
+    <ul id="double-history-list" style="font-size:14px; color:#444; min-height:48px;"></ul>
+  </div>
+</div>
+    <!-- Admin: Cấp xu cho user -->
+    <div id="admin-section" style="display:none;">
+      <h2>Cấp Xu cho người dùng</h2>
+      <select id="user-list"></select>
+      <input type="number" id="add-balance" placeholder="Số Xu muốn cấp" min="1">
+      <button onclick="addBalance()">Cấp Xu</button>
+      <div class="msg" id="admin-msg"></div>
+    </div>
+
+    <!-- Admin: Điều chỉnh tồn kho -->
+    <div id="stock-section" style="display:none;">
+      <h2>Quản lý tồn kho sản phẩm</h2>
+      <table id="stock-list">
+        <tr>
+          <th>Sản phẩm</th>
+          <th>Tồn kho hiện tại</th>
+          <th>Điều chỉnh</th>
+        </tr>
+      </table>
+      <div class="msg" id="stock-msg"></div>
+    </div>
+    
+    <!-- Admin: Gán link cá nhân cho user -->
+    <div id="speciallink-section" style="display:none; margin-top:30px;">
+      <h2>Gán link đặc biệt cho người dùng</h2>
+      <select id="user-list-link"></select>
+      <input type="text" id="special-link-input" placeholder="https://your-link.com/user">
+      <button onclick="saveSpecialLink()">Lưu link</button>
+      <div class="msg" id="speciallink-msg"></div>
+    </div>
+    
+    <!-- Admin: Xem đơn hàng -->
+    <div id="orders-section" style="display:none;">
+      <h2>Đơn hàng của khách</h2>
+      <table border="1" width="100%" id="orders-table">
+        <tr><th>Người mua</th><th>Sản phẩm</th><th>Tổng Xu</th><th>Thời gian</th></tr>
+      </table>
+    </div>
+    <audio id="checkout-sound" src="audio/moneycash.mp3"></audio>
+    <audio id="bg-music" src="" loop autoplay style="display:none"></audio>
+  </div>
+  <script>
+    // Cấu hình Supabase
+    const supabaseUrl = 'https://kqefjnvzftzyzseauvmm.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxZWZqbnZ6ZnR6eXpzZWF1dm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxNjM4MTQsImV4cCI6MjA2NTczOTgxNH0.LpoTPJncZoZHIfn_0i8Eql17xZXavzPp8tNh7wWt2k0';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Quản lý trạng thái user
+    function getCurrentUser() {
+      const userStr = sessionStorage.getItem('currentUser');
+      if (userStr) return JSON.parse(userStr);
+      return null;
+    }
+    function setCurrentUser(user) {
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
+    }
+    function logout() {
+      sessionStorage.removeItem('currentUser');
+      location.reload();
+    }
+
+    // Đăng ký
+    async function register() {
+      const username = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const msg = document.getElementById('register-msg');
+      if (!username || !password) {
+        msg.textContent = "Vui lòng nhập đầy đủ thông tin!";
+        return;
+      }
+      let { data: exist } = await supabase.from('users').select('id').eq('username', username).maybeSingle();
+      if (exist) {
+        msg.textContent = "Tên đăng nhập đã tồn tại!";
+        return;
+      }
+      let { error } = await supabase.from('users').insert([{ username, password, balance: 0 }]);
+      if (error) msg.textContent = "Lỗi: " + error.message;
+      else {
+        msg.textContent = "Đăng ký thành công! Bạn có thể đăng nhập.";
+        setTimeout(showLogin, 1000);
+      }
+    }
+
+    // Đăng nhập
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('login-msg');
+      let { data: user } = await supabase.from('users').select('*').eq('username', username).eq('password', password).maybeSingle();
+      if (!user) {
+        msg.textContent = "Sai tên đăng nhập hoặc mật khẩu!";
+        return;
+      }
+      setCurrentUser(user);
+      sessionStorage.setItem('showRulesModal', '1');
+      location.reload();
+    }
+
+    // Giao diện đăng nhập/đăng ký
+    function showLogin() {
+      document.getElementById('register-section').style.display = 'none';
+      document.getElementById('login-section').style.display = 'block';
+    }
+    function showRegister() {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('register-section').style.display = 'block';
+    }
+
+    // Sản phẩm từ Supabase
+    let products = [];
+    async function fetchProducts() {
+      let { data, error } = await supabase.from('products').select('*');
+      if (!error) products = data;
+    }
+
+    async function renderProducts() {
+  await fetchProducts();
+  const list = document.getElementById('products-list');
+  list.innerHTML = '';
+  // Lọc sản phẩm theo category nếu không phải "all"
+  let filtered = selectedCategory === 'all'
+    ? products
+    : products.filter(p => (p.category || 'all') === selectedCategory);
+
+  filtered.forEach(p => {
+    let stockText = p.stock > 0
+      ? `<span class="product-stock">Còn lại: ${p.stock}</span>`
+      : `<span class="out-of-stock">Hết hàng</span>`;
+    let btnDisabled = p.stock <= 0 ? 'disabled' : '';
+    list.innerHTML += `
+      <div class="product">
+        <img src="${p.image}" alt="${p.name}">
+        <div class="product-title">${p.name}</div>
+        <div class="product-price">${p.price} Xu</div>
+        ${stockText}
+        <div style="font-size:13px; color:#666;margin-bottom:6px">${p.description}</div>
+        <button class="add-cart-btn" onclick="addToCart('${p.id}')" ${btnDisabled}>${p.stock > 0 ? 'Thêm vào giỏ' : 'Hết hàng'}</button>
+      </div>
+    `;
+  });
+}
+    // Giỏ hàng (tạm thời lưu sessionStorage theo user)
+    function getCart() {
+      const user = getCurrentUser();
+      if (!user) return [];
+      return JSON.parse(sessionStorage.getItem('cart_' + user.username) || '[]');
+    }
+    function saveCart(cart) {
+      const user = getCurrentUser();
+      if (!user) return;
+      sessionStorage.setItem('cart_' + user.username, JSON.stringify(cart));
+    }
+
+    function addToCart(productId) {
+        const prod = products.find(p => p.id == productId);
+      if (!prod || prod.stock <= 0) {
+        alert("Hết hàng!");
+        return;
+      }
+      let cart = getCart();
+      let item = cart.find(i => i.id === productId);
+      let currentQty = item ? item.qty : 0;
+      if (currentQty + 1 > prod.stock) {
+        alert("Không thể thêm vượt quá số lượng còn lại trong kho!");
+        return;
+      }
+      if (item) item.qty++;
+      else cart.push({ id: productId, qty: 1 });
+      saveCart(cart);
+      renderCart();
+    }
+
+    function removeCartItem(index) {
+      let cart = getCart();
+      cart.splice(index, 1);
+      saveCart(cart);
+      renderCart();
+    }
+
+    function changeQty(index, qty) {
+      let cart = getCart();
+      let pid = cart[index].id;
+      let prod = products.find(p => p.id === pid);
+      qty = Math.max(1, parseInt(qty));
+      if (qty > prod.stock) {
+        alert("Vượt quá số lượng còn lại trong kho!");
+        qty = prod.stock;
+      }
+      cart[index].qty = qty;
+      saveCart(cart);
+      renderCart();
+    }
+
+    function renderCart() {
+      const tbody = document.querySelector('#cart-table tbody');
+      const totalSpan = document.getElementById('cart-total');
+      tbody.innerHTML = '';
+      let cart = getCart();
+      let total = 0;
+      cart.forEach((item, idx) => {
+        const prod = products.find(p => p.id === item.id);
+        if (!prod) return;
+        if (item.qty > prod.stock) {
+          item.qty = prod.stock;
+          saveCart(cart);
+        }
+        const line = prod.price * item.qty;
+        total += line;
+        tbody.innerHTML += `
+          <tr>
+            <td>${prod.name}</td>
+            <td>${prod.price} Xu</td>
+            <td>
+              <input type="number" value="${item.qty}" min="1" max="${prod.stock}" style="width:50px" onchange="changeQty(${idx}, this.value)">
+            </td>
+            <td>${line} Xu</td>
+            <td><button onclick="removeCartItem(${idx})">Xóa</button></td>
+          </tr>
+        `;
+      });
+      totalSpan.textContent = total;
+      document.getElementById('checkout-btn').disabled = (cart.length === 0);
+    }
+
+    // Thanh toán
+    async function checkout() {
+      const cart = getCart();
+      if (cart.length === 0) return;
+      let user = getCurrentUser();
+      let { data: freshUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+      let sum = 0;
+      for (let item of cart) {
+        let prod = products.find(p => p.id === item.id);
+        if (!prod) continue;
+        if (item.qty > prod.stock) {
+          document.getElementById('cart-msg').textContent = `Sản phẩm "${prod.name}" chỉ còn lại ${prod.stock} cái!`;
+          return;
+        }
+        sum += prod.price * item.qty;
+      }
+      if (freshUser.balance < sum) {
+        document.getElementById('cart-msg').textContent = 'Không đủ Xu để thanh toán!';
+        return;
+      }
+      // Trừ tồn kho, cập nhật xu
+      for (let item of cart) {
+        let prod = products.find(p => p.id === item.id);
+        await supabase.from('products').update({ stock: prod.stock - item.qty }).eq('id', prod.id);
+      }
+      await supabase.from('users').update({ balance: freshUser.balance - sum }).eq('id', user.id);
+      await supabase.from('orders').insert([{
+        username: user.username,
+        items: cart,
+        total: sum,
+        time: new Date().toLocaleString(),
+        delivered: false
+      }]);
+      sessionStorage.removeItem('cart_' + user.username);
+      document.getElementById('cart-msg').style.color = "#388e3c";
+      document.getElementById('cart-msg').textContent = 'Thanh toán thành công! Cảm ơn bạn đã mua hàng.';
+      try {
+  var audio = document.getElementById('checkout-sound');
+  audio.currentTime = 0;
+  audio.play();
+} catch(e) {}
+      setTimeout(()=>{document.getElementById('cart-msg').textContent='';document.getElementById('cart-msg').style.color='#d32f2f';},3000);
+      await loadAll();
+    }
+
+    // Hiển thị số dư và tên user
+    async function renderBalance() {
+      const user = getCurrentUser();
+      if (!user) return;
+      let { data: freshUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+      document.getElementById('username-display').textContent = user.username;
+      document.getElementById('balance').textContent = freshUser ? freshUser.balance : user.balance;
+    }
+
+    // ADMIN: Cấp xu cho user
+    async function renderAdminSection() {
+      const user = getCurrentUser();
+      if (!user || user.username !== 'admin') {
+        document.getElementById('admin-section').style.display = 'none';
+        document.getElementById('speciallink-section').style.display = 'none';
+        return;
+      }
+      document.getElementById('admin-section').style.display = 'block';
+      document.getElementById('speciallink-section').style.display = 'block';
+      let { data: users } = await supabase.from('users').select('*');
+      let select = document.getElementById('user-list');
+      let selectLink = document.getElementById('user-list-link');
+      select.innerHTML = '';
+      selectLink.innerHTML = '';
+      users.forEach(u => {
+        if (u.username !== 'admin') {
+          select.innerHTML += `<option value="${u.username}">${u.username}</option>`;
+          selectLink.innerHTML += `<option value="${u.username}">${u.username}</option>`;
+        }
+      });
+    }
+    async function addBalance() {
+      let target = document.getElementById('user-list').value;
+      let amount = parseInt(document.getElementById('add-balance').value);
+      if (!target || isNaN(amount) || amount <= 0) {
+        document.getElementById('admin-msg').textContent = "Vui lòng nhập thông tin hợp lệ!";
+        return;
+      }
+      let { data: user } = await supabase.from('users').select('*').eq('username', target).maybeSingle();
+      if (!user) return;
+      await supabase.from('users').update({ balance: user.balance + amount }).eq('id', user.id);
+      document.getElementById('admin-msg').textContent = `Đã cộng ${amount} Xu cho ${target}!`;
+      renderBalance();
+      setTimeout(()=>{document.getElementById('admin-msg').textContent='';},2000);
+    }
+
+    // ADMIN: Điều chỉnh tồn kho
+    async function renderStockSection() {
+      const user = getCurrentUser();
+      if (!user || user.username !== 'admin') {
+        document.getElementById('stock-section').style.display = 'none';
+        return;
+      }
+      document.getElementById('stock-section').style.display = 'block';
+      await fetchProducts();
+      let table = document.getElementById('stock-list');
+      table.innerHTML = `<tr>
+        <th>Sản phẩm</th>
+        <th>Tồn kho hiện tại</th>
+        <th>Điều chỉnh</th>
+      </tr>`;
+      products.forEach(p => {
+        table.innerHTML += `
+          <tr>
+            <td>${p.name}</td>
+            <td id="stock-now-${p.id}">${p.stock}</td>
+            <td>
+              <input type="number" id="stock-input-${p.id}" min="0" value="${p.stock}">
+              <button onclick="updateStock(${p.id})">Cập nhật</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+    async function updateStock(pid) {
+      let input = document.getElementById('stock-input-' + pid);
+      let value = parseInt(input.value);
+      if (isNaN(value) || value < 0) value = 0;
+await supabase.from('products').update({ stock: value }).eq('id', Number(pid));
+      document.getElementById('stock-now-' + pid).textContent = value;
+      document.getElementById('stock-msg').textContent = "Đã cập nhật tồn kho!";
+      renderProducts();
+      renderCart();
+      setTimeout(()=>{document.getElementById('stock-msg').textContent='';},2000);
+    }
+
+    // ADMIN: Gán link đặc biệt cho user
+    async function saveSpecialLink() {
+      const uname = document.getElementById('user-list-link').value;
+      const link = document.getElementById('special-link-input').value.trim();
+      if (!uname || !link) {
+        document.getElementById('speciallink-msg').textContent = "Vui lòng chọn user và nhập link!";
+        return;
+      }
+      if (!/^https?:\/\/.+/i.test(link)) {
+        document.getElementById('speciallink-msg').textContent = "Link phải bắt đầu bằng http:// hoặc https://";
+        return;
+      }
+      let { data: user } = await supabase.from('users').select('*').eq('username', uname).maybeSingle();
+      if (!user) return;
+      await supabase.from('users').update({ specialLink: link }).eq('id', user.id);
+      document.getElementById('speciallink-msg').textContent = "Đã lưu link cho " + uname + "!";
+      setTimeout(()=>{document.getElementById('speciallink-msg').textContent='';},2000);
+      if (getCurrentUser().username === uname) renderSpecialLinkBtn();
+    }
+    async function renderSpecialLinkBtn() {
+      const user = getCurrentUser();
+      if (!user) {
+        document.getElementById('special-link-btn').style.display = "none";
+        return;
+      }
+      let { data: u } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+      let btn = document.getElementById('special-link-btn');
+      if (!u || !u.specialLink) {
+        btn.style.display = "none";
+        return;
+      }
+      btn.href = u.specialLink;
+      btn.style.display = "inline-block";
+    }
+
+    // ADMIN: Xem đơn hàng
+    async function renderOrdersSection() {
+      const user = getCurrentUser();
+      if (!user || user.username !== 'admin') {
+        document.getElementById('orders-section').style.display = 'none';
+        return;
+      }
+      document.getElementById('orders-section').style.display = 'block';
+      let { data: orders } = await supabase.from('orders').select('*');
+      let table = document.getElementById('orders-table');
+      table.innerHTML = `<tr>
+        <th>Người mua</th>
+        <th>Sản phẩm</th>
+        <th>Tổng Xu</th>
+        <th>Thời gian</th>
+        <th>Trạng thái</th>
+        <th>Đánh dấu đã giao</th>
+      </tr>`;
+      orders.forEach((order, idx) => {
+        let items;
+        try {
+          items = (typeof order.items === 'string') ? JSON.parse(order.items) : order.items;
+        } catch(e) {
+          items = [];
+        }
+        items = items.map(it => {
+          let prod = products.find(p=>p.id===it.id);
+          return `${prod ? prod.name : it.id} x${it.qty}`;
+        }).join(', ');
+        const status = order.delivered ? '<span style="color:green">Đã giao</span>' : '<span style="color:orange">Chưa giao</span>';
+        const btn = order.delivered
+          ? '-'
+          : `<button onclick="markDelivered(${order.id})">Đã giao</button>`;
+        table.innerHTML += `<tr>
+          <td>${order.username}</td>
+          <td>${items}</td>
+          <td>${order.total}</td>
+          <td>${order.time}</td>
+          <td>${status}</td>
+          <td>${btn}</td>
+        </tr>`;
+      });
+    }
+    async function markDelivered(orderId) {
+      await supabase.from('orders').update({ delivered: true }).eq('id', orderId);
+      renderOrdersSection();
+    }
+
+    // Khởi động trang
+async function loadAll() {
+  let user = getCurrentUser();
+  if (!user) {
+    // Ẩn các phần khi chưa đăng nhập
+    document.getElementById('shop-section').style.display = 'none';
+    document.getElementById('user-section').style.display = 'none';
+    document.getElementById('login-section').style.display = 'block';
+    document.getElementById('admin-section').style.display = 'none';
+    document.getElementById('stock-section').style.display = 'none';
+    document.getElementById('orders-section').style.display = 'none';
+    document.getElementById('speciallink-section').style.display = 'none';
+    document.getElementById('double-section').style.display = 'none';
+    document.getElementById('stats-section') && (document.getElementById('stats-section').style.display = 'none');
+    document.getElementById('main-navbar').style.display = 'none';
+    renderSpecialLinkBtn();
+    return;
+  }
+  // Đã đăng nhập, hiển thị các phần phù hợp
+  document.getElementById('login-section').style.display = 'none';
+  document.getElementById('register-section').style.display = 'none';
+  document.getElementById('shop-section').style.display = 'block';
+  document.getElementById('user-section').style.display = 'block';
+  document.getElementById('double-section').style.display = 'block';
+  document.getElementById('main-navbar').style.display = 'flex';
+
+  // Phân quyền hiển thị admin
+  if (user.username === 'admin') {
+    document.getElementById('admin-nav-btn').style.display = '';
+  } else {
+    document.getElementById('admin-nav-btn').style.display = 'none';
+  }
+
+  await renderBalance();
+  await renderProducts();
+  renderCart();
+  await renderAdminSection();
+  await renderStockSection();
+  await renderOrdersSection();
+  await renderSpecialLinkBtn();
+  typeof renderStatsSection === "function" && await renderStatsSection();
+  initDoubleCasino();
+
+  // Xử lý modal thể lệ
+  if (sessionStorage.getItem('showRulesModal') === '1' && !sessionStorage.getItem('rulesModalSeen')) {
+    showRulesModal();
+    sessionStorage.removeItem('showRulesModal');
+  }
+  sessionStorage.removeItem('rulesModalSeen');
+
+  // Khi đăng nhập xong, mặc định hiển thị shop
+  showSection('shop');
+}
+    loadAll();
+
+    function showRulesModal() {
+      document.getElementById('rules-modal').style.display = 'block';
+    }
+    function hideRulesModal() {
+      document.getElementById('rules-modal').style.display = 'none';
+      sessionStorage.setItem('rulesModalSeen', '1');
+    }
+   // ===== Double or Nothing game kiểu casino =====
+
+function getDoubleState() {
+  return JSON.parse(sessionStorage.getItem('double_state') || '{"inGame":false,"value":0}');
+}
+function setDoubleState(state) {
+  sessionStorage.setItem('double_state', JSON.stringify(state));
+}
+function resetDoubleState() {
+  setDoubleState({inGame:false, value:0});
+}
+
+async function startDoubleGame() {
+  const user = getCurrentUser();
+  const msg = document.getElementById('double-msg');
+  if (!user) {
+    msg.textContent = "Bạn cần đăng nhập để chơi!";
+    return;
+  }
+  let { data: freshUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+  if (!freshUser || freshUser.balance < 4) {
+    msg.textContent = "Bạn không đủ xu để chơi!";
+    return;
+  }
+  await supabase.from('users').update({ balance: freshUser.balance - 4 }).eq('id', user.id);
+  setDoubleState({inGame:true, value:4});
+  showDoubleMsg("Bạn bắt đầu với 4 xu. Chọn Nhân đôi hoặc Rút xu.");
+  renderDoubleGameUI();
+  await renderBalance();
+}
+
+async function doubleOrNothing() {
+  let state = getDoubleState();
+  if (!state.inGame) return;
+  const win = Math.random() < 0.4;
+  if (win) {
+    state.value *= 2;
+    setDoubleState(state);
+    showDoubleMsg(`🎉 Bạn còn lại ${state.value} xu. Chọn tiếp tục hoặc rút xu.`);
+  } else {
+    showDoubleMsg("😢 Rất tiếc, bạn đã mất sạch số xu đang cược!");
+    resetDoubleState();
+  }
+  renderDoubleGameUI();
+  await renderDoubleHistory(true); // true: không cần reload khi mất
+  await renderBalance();
+  // Lưu lịch sử vào supabase
+  const user = getCurrentUser();
+  await supabase.from('double_history').insert([{
+    username: user.username,
+    result: win ? `Thắng (Nhân đôi lên ${state.value} xu)` : "Thua (Mất sạch)",
+    time: new Date().toLocaleString()
+  }]);
+}
+
+async function takeDoubleWinnings() {
+  const user = getCurrentUser();
+  let state = getDoubleState();
+  if (!user || !state.inGame || state.value <= 0) return;
+  // Cộng xu vào tài khoản
+  let { data: freshUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+  await supabase.from('users').update({ balance: freshUser.balance + state.value }).eq('id', user.id);
+  showDoubleMsg(`🎉 Bạn đã rút ${state.value} xu thành công!`);
+  resetDoubleState();
+  renderDoubleGameUI();
+  await renderDoubleHistory(true);
+  await renderBalance();
+  // Lưu lịch sử vào supabase
+  await supabase.from('double_history').insert([{
+    username: user.username,
+    result: `Rút ${state.value} xu`,
+    time: new Date().toLocaleString()
+  }]);
+}
+
+function renderDoubleGameUI() {
+  let state = getDoubleState();
+  const cur = document.getElementById('double-current');
+  if (!state.inGame) {
+    document.getElementById('double-start-btn').style.display = '';
+    document.getElementById('double-btn').style.display = 'none';
+    document.getElementById('double-take-btn').style.display = 'none';
+    cur.textContent = '';
+  } else {
+    document.getElementById('double-start-btn').style.display = 'none';
+    document.getElementById('double-btn').style.display = '';
+    document.getElementById('double-take-btn').style.display = '';
+    cur.textContent = `Số xu đang cược: ${state.value}`;
+  }
+}
+
+function showDoubleMsg(msg) {
+  document.getElementById('double-msg').textContent = msg;
+}
+
+async function renderDoubleHistory(skipReload) {
+  const user = getCurrentUser();
+  const list = document.getElementById('double-history-list');
+  if (!user) { list.innerHTML = '<li>Bạn cần đăng nhập</li>'; return; }
+  let { data } = await supabase.from('double_history').select('*').eq('username', user.username).order('id', {ascending:false}).limit(10);
+  list.innerHTML = '';
+  if (!data || data.length === 0) {
+    list.innerHTML = '<li>Chưa có lượt chơi nào</li>'; return;
+  }
+  data.forEach(h => {
+    list.innerHTML += `<li>${h.time}: <b>${h.result}</b></li>`;
+  });
+}
+
+// Khi loadAll, gọi:
+function initDoubleCasino() {
+  renderDoubleGameUI();
+  renderDoubleHistory();
+}
+// Danh sách các file nhạc nền
+const bgMusics = [
+  "audio/Fade.mp3",
+  "audio/FlyAway.mp3",
+  "audio/Dancin.mp3",
+  "audio/Mortals.mp3",
+  "audio/Royalty.mp3"
+];
+
+// Phát nhạc nền ngẫu nhiên khi vào site
+function playRandomBgMusic() {
+  const audio = document.getElementById('bg-music');
+  const randIndex = Math.floor(Math.random() * bgMusics.length);
+  audio.src = bgMusics[randIndex];
+  // Nếu đã có user interaction, tự động play
+  audio.currentTime = 0;
+  audio.volume = 0.5; // Tùy chỉnh âm lượng
+  audio.play().catch(() => {
+    // Một số trình duyệt cần tương tác mới play, bạn có thể hướng dẫn user bấm đâu đó để play
+  });
+}
+
+// Gọi khi load site
+playRandomBgMusic();
+    let selectedCategory = 'all';
+
+function filterCategory(cat) {
+  selectedCategory = cat;
+  renderProducts();
+}
+    function showSection(section) {
+  // Ẩn hết mọi section liên quan
+  document.getElementById('shop-section').style.display = 'none';
+  document.getElementById('cart-table').parentElement.parentElement.style.display = 'none';
+  document.getElementById('double-section').style.display = 'none';
+  document.getElementById('admin-section').style.display = 'none';
+  document.getElementById('stock-section').style.display = 'none';
+  document.getElementById('orders-section').style.display = 'none';
+  document.getElementById('stats-section') && (document.getElementById('stats-section').style.display = 'none');
+  document.getElementById('speciallink-section').style.display = 'none';
+
+  // Reset active
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  switch(section) {
+    case 'shop':
+      document.getElementById('shop-section').style.display = 'block';
+      document.getElementById('shop-nav-btn').classList.add('active');
+      break;
+    case 'pay':
+      document.getElementById('cart-table').parentElement.parentElement.style.display = 'block';
+      document.getElementById('pay-nav-btn').classList.add('active');
+      break;
+    case 'game':
+      document.getElementById('double-section').style.display = 'block';
+      document.getElementById('game-nav-btn').classList.add('active');
+      break;
+    case 'admin':
+      document.getElementById('admin-section').style.display = 'block';
+      document.getElementById('stock-section').style.display = 'block';
+      document.getElementById('orders-section').style.display = 'block';
+      document.getElementById('speciallink-section').style.display = 'block';
+      document.getElementById('stats-section') && (document.getElementById('stats-section').style.display = 'block');
+      document.getElementById('admin-nav-btn').classList.add('active');
+      break;
+  }
+}
+  </script>
+</body>
+</html>
